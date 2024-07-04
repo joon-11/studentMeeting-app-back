@@ -16,9 +16,13 @@ app.get('/api/t_profiles', (req, res) => {
     });
 });
 
+// 온라인 예약 시스템 POST
 app.post('/api/reserve', (req, res) => {
     const time = req.body.time;
-    const sqlInsert = 'INSERT INTO reserve (r_no, time, confrim) VALUES (?, ?, ?)';
+    const person = req.body.person;
+    // const time = "2024-01-01 12:00:00";
+    // const person = 1;
+    const sqlInsert = 'INSERT INTO reserve (r_no, time, confirm, reserve_p) VALUES (?, ?, ?, ?)';
     const sqlSelectMaxRNo = 'SELECT COALESCE(MAX(r_no)+1, 1) AS next_r_no FROM reserve';
     
     db.query(sqlSelectMaxRNo, (err, result) => {
@@ -27,7 +31,7 @@ app.post('/api/reserve', (req, res) => {
         }
         
         const nextRNo = result[0].next_r_no;
-        db.query(sqlInsert, [nextRNo, time, 'y'], (err, results) => {
+        db.query(sqlInsert, [nextRNo, time, 'y', person], (err, results) => {
             if (err) {
                 return res.status(500).send(err);
             }
@@ -35,6 +39,42 @@ app.post('/api/reserve', (req, res) => {
         });
     });
 });
+
+
+// 예약 취소 POST
+app.post('/api/cancel', (req, res) => {
+    const person = req.body.person;
+    const time = req.body.time;
+    // const person = 1;
+    // const time = "2024-01-01 12:00:00";
+    const sql = "update reserve set confirm = 'N' where reserve_p = ? and time = ?";
+
+    db.query(sql,[person, time], (err, result)=>{
+        if (err) {
+            return res.status(500).send(err);
+        }
+        return res.json(result);
+    });
+});
+
+//예약 확인 GET
+app.get('/api/reserveConfirm', (req, res) => {
+    const person = 1;
+    const sql = "SELECT * FROM reserve WHERE reserve_p = ? AND confirm = 'y'";
+
+    db.query(sql, [person], (error, results) => {
+        if (error) {
+            return res.status(500).send(error);
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: "no selected" });
+        }
+
+        return res.json(results);
+    });
+});
+
 
 
 
